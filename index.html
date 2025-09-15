@@ -1,0 +1,1259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NAAC/NBA Report Summarizer</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-bg: #0a0b0f;
+            --secondary-bg: #1a1d24;
+            --accent-bg: #2a2f3a;
+            --primary-text: #ffffff;
+            --secondary-text: #b8bcc8;
+            --accent-color: #4f46e5;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+            --border-color: #374151;
+            --hover-bg: #374151;
+        }
+
+        [data-theme="light"] {
+            --primary-bg: #ffffff;
+            --secondary-bg: #f8fafc;
+            --accent-bg: #f1f5f9;
+            --primary-text: #1e293b;
+            --secondary-text: #64748b;
+            --accent-color: #4f46e5;
+            --success-color: #059669;
+            --warning-color: #d97706;
+            --danger-color: #dc2626;
+            --border-color: #e2e8f0;
+            --hover-bg: #e2e8f0;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--primary-bg);
+            color: var(--primary-text);
+            line-height: 1.6;
+            min-height: 100vh;
+            transition: all 0.3s ease;
+        }
+
+        .theme-toggle {
+            position: fixed;
+            top: 2rem;
+            right: 2rem;
+            z-index: 1000;
+            background: var(--secondary-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 50px;
+            padding: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .theme-toggle:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 40px rgba(79, 70, 229, 0.15);
+        }
+
+        .theme-option {
+            padding: 0.5rem 1rem;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--secondary-text);
+        }
+
+        .theme-option.active {
+            background: var(--accent-color);
+            color: white;
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+        }
+
+        .theme-option:hover:not(.active) {
+            background: var(--hover-bg);
+            color: var(--primary-text);
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+            opacity: 0;
+            animation: fadeInUp 0.8s ease forwards;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+        }
+
+        .header .subtitle {
+            color: var(--secondary-text);
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .header .author-info {
+            background: var(--secondary-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1rem 2rem;
+            display: inline-block;
+            margin-top: 1rem;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+        }
+
+        .author-info .name {
+            font-weight: 600;
+            color: var(--accent-color);
+            font-size: 1.1rem;
+        }
+
+        .author-info .usn {
+            color: var(--secondary-text);
+            font-size: 0.95rem;
+            margin-top: 0.25rem;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            opacity: 0;
+            animation: fadeInUp 0.8s ease 0.3s forwards;
+        }
+
+        .card {
+            background: var(--secondary-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 2rem;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 20px 40px rgba(79, 70, 229, 0.1);
+            border-color: var(--accent-color);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .card-icon {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, var(--accent-color), #7c3aed);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: white;
+        }
+
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        .upload-zone {
+            border: 2px dashed var(--border-color);
+            border-radius: 12px;
+            padding: 3rem 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .upload-zone:hover {
+            border-color: var(--accent-color);
+            background: rgba(79, 70, 229, 0.05);
+        }
+
+        .upload-zone.dragover {
+            border-color: var(--success-color);
+            background: rgba(16, 185, 129, 0.1);
+            transform: scale(1.02);
+        }
+
+        .upload-icon {
+            font-size: 3rem;
+            color: var(--accent-color);
+            margin-bottom: 1rem;
+            transition: transform 0.3s ease;
+        }
+
+        .upload-zone:hover .upload-icon {
+            transform: scale(1.1);
+        }
+
+        .upload-text {
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .upload-subtext {
+            color: var(--secondary-text);
+            font-size: 0.9rem;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .word-limit-section {
+            margin: 2rem 0;
+            background: var(--accent-bg);
+            border-radius: 12px;
+            padding: 1.5rem;
+            border: 1px solid var(--border-color);
+        }
+
+        .word-limit-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .word-limit-title {
+            font-weight: 600;
+            color: var(--primary-text);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .word-count-display {
+            background: var(--accent-color);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .slider-container {
+            position: relative;
+            margin: 1rem 0;
+        }
+
+        .word-slider {
+            width: 100%;
+            height: 8px;
+            background: var(--border-color);
+            border-radius: 4px;
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        .word-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 24px;
+            height: 24px;
+            background: linear-gradient(135deg, var(--accent-color), #7c3aed);
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .word-slider::-webkit-slider-thumb:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 20px rgba(79, 70, 229, 0.4);
+        }
+
+        .word-slider::-moz-range-thumb {
+            width: 24px;
+            height: 24px;
+            background: linear-gradient(135deg, var(--accent-color), #7c3aed);
+            border-radius: 50%;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+        }
+
+        .slider-track {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 8px;
+            background: linear-gradient(90deg, var(--accent-color), #7c3aed);
+            border-radius: 4px;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .slider-labels {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 0.5rem;
+            color: var(--secondary-text);
+            font-size: 0.8rem;
+        }
+
+        .model-selector {
+            margin-bottom: 2rem;
+        }
+
+        .model-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .model-card {
+            background: var(--accent-bg);
+            border: 2px solid transparent;
+            border-radius: 12px;
+            padding: 1.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .model-card:hover {
+            border-color: var(--accent-color);
+            transform: translateY(-2px);
+        }
+
+        .model-card.selected {
+            border-color: var(--accent-color);
+            background: rgba(79, 70, 229, 0.1);
+        }
+
+        .model-name {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .model-speed {
+            font-size: 0.8rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 6px;
+            background: var(--success-color);
+            color: white;
+        }
+
+        .model-speed.medium {
+            background: var(--warning-color);
+        }
+
+        .model-speed.slow {
+            background: var(--danger-color);
+        }
+
+        .model-description {
+            font-size: 0.9rem;
+            color: var(--secondary-text);
+            line-height: 1.4;
+        }
+
+        .tooltip {
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--primary-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1rem;
+            width: 300px;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+            z-index: 1000;
+            font-size: 0.9rem;
+            line-height: 1.4;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+        }
+
+        .model-card:hover .tooltip {
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(-50%) translateY(-10px);
+        }
+
+        .controls {
+            display: flex;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.95rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent-color), #7c3aed);
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 8px 25px rgba(79, 70, 229, 0.3);
+        }
+
+        .btn-secondary {
+            background: var(--accent-bg);
+            color: var(--primary-text);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            background: var(--hover-bg);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .progress-container {
+            margin-top: 1rem;
+            display: none;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: var(--accent-bg);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent-color), #7c3aed);
+            width: 0;
+            transition: width 0.3s ease;
+        }
+
+        .progress-text {
+            margin-top: 0.5rem;
+            font-size: 0.9rem;
+            color: var(--secondary-text);
+            text-align: center;
+        }
+
+        .result-section {
+            margin-top: 2rem;
+            display: none;
+        }
+
+        .summary-container {
+            background: var(--accent-bg);
+            border-radius: 12px;
+            padding: 2rem;
+            border: 1px solid var(--border-color);
+        }
+
+        .summary-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .summary-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .summary-stats {
+            display: flex;
+            gap: 1rem;
+            font-size: 0.9rem;
+            color: var(--secondary-text);
+        }
+
+        .summary-content {
+            line-height: 1.8;
+            font-size: 1rem;
+        }
+
+        .file-info {
+            background: var(--accent-bg);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1rem;
+            display: none;
+            border: 1px solid var(--border-color);
+        }
+
+        .file-name {
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+        }
+
+        .file-details {
+            display: flex;
+            gap: 1rem;
+            font-size: 0.9rem;
+            color: var(--secondary-text);
+            flex-wrap: wrap;
+        }
+
+        .loading-spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--accent-bg);
+            border-top: 2px solid var(--accent-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        .error-message {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid var(--danger-color);
+            color: var(--danger-color);
+            padding: 1rem;
+            border-radius: 8px;
+            margin-top: 1rem;
+            display: none;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .processing {
+            animation: pulse 2s infinite;
+        }
+
+        @media (max-width: 768px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .model-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .controls {
+                flex-direction: column;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .container {
+                padding: 1rem;
+            }
+
+            .theme-toggle {
+                top: 1rem;
+                right: 1rem;
+                flex-direction: column;
+                padding: 0.25rem;
+            }
+
+            .theme-option {
+                padding: 0.5rem;
+            }
+
+            .summary-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .summary-stats {
+                flex-wrap: wrap;
+            }
+        }
+    </style>
+</head>
+<body data-theme="dark">
+    <div class="theme-toggle">
+        <div class="theme-option active" data-theme="dark">
+            <i class="fas fa-moon"></i>
+            Dark
+        </div>
+        <div class="theme-option" data-theme="light">
+            <i class="fas fa-sun"></i>
+            Light
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="header">
+            <h1><i class="fas fa-brain"></i> NAAC/NBA Report Summarizer</h1>
+            <p class="subtitle">Advanced NLP-powered document analysis and summarization</p>
+            <div class="author-info">
+                <div class="name">Developed by Madhan Kumar R</div>
+                <div class="usn">USN: 1DS23AI035</div>
+            </div>
+        </div>
+
+        <div class="main-grid">
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-icon">
+                        <i class="fas fa-upload"></i>
+                    </div>
+                    <h2 class="card-title">Document Upload</h2>
+                </div>
+
+                <div class="upload-zone" id="uploadZone">
+                    <div class="upload-icon">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                    </div>
+                    <div class="upload-text">Drop your NAAC/NBA documents here</div>
+                    <div class="upload-subtext">or click to browse (PDF, DOC, DOCX up to 10MB)</div>
+                    <input type="file" id="fileInput" class="file-input" accept=".pdf,.doc,.docx,.txt" multiple>
+                </div>
+
+                <div class="file-info" id="fileInfo">
+                    <div class="file-name" id="fileName"></div>
+                    <div class="file-details">
+                        <span id="fileSize"></span>
+                        <span id="fileType"></span>
+                        <span id="filePages"></span>
+                        <span id="estimatedWords"></span>
+                    </div>
+                </div>
+
+                <div class="word-limit-section" id="wordLimitSection" style="display: none;">
+                    <div class="word-limit-header">
+                        <div class="word-limit-title">
+                            <i class="fas fa-text-width"></i>
+                            Summary Word Limit
+                        </div>
+                        <div class="word-count-display" id="wordCountDisplay">500 words</div>
+                    </div>
+                    <div class="slider-container">
+                        <input type="range" id="wordSlider" class="word-slider" min="200" max="1000" value="500" step="50">
+                        <div class="slider-track" id="sliderTrack"></div>
+                    </div>
+                    <div class="slider-labels">
+                        <span>200 words</span>
+                        <span>Recommended</span>
+                        <span>1000 words</span>
+                    </div>
+                </div>
+
+                <div class="error-message" id="errorMessage"></div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-icon">
+                        <i class="fas fa-robot"></i>
+                    </div>
+                    <h2 class="card-title">AI Model Selection</h2>
+                </div>
+
+                <div class="model-selector">
+                    <div class="model-grid" id="modelGrid"></div>
+                </div>
+
+                <div class="controls">
+                    <button class="btn btn-primary" id="summarizeBtn" disabled>
+                        <i class="fas fa-magic"></i>
+                        Generate Summary
+                    </button>
+                    <button class="btn btn-secondary" id="clearBtn">
+                        <i class="fas fa-trash"></i>
+                        Clear
+                    </button>
+                </div>
+
+                <div class="progress-container" id="progressContainer">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+                    <div class="progress-text" id="progressText">Initializing...</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="result-section" id="resultSection">
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-icon">
+                        <i class="fas fa-file-alt"></i>
+                    </div>
+                    <h2 class="card-title">Summary Results</h2>
+                </div>
+                <div class="summary-container" id="summaryContainer"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class ReportSummarizer {
+            constructor() {
+                this.selectedModel = null;
+                this.uploadedFiles = [];
+                this.wordLimit = 500;
+                this.estimatedDocWords = 0;
+                this.currentTheme = 'dark';
+                this.models = [
+                    {
+                        id: 'bert-summarizer',
+                        name: 'BERT Summarizer',
+                        speed: 'fast',
+                        icon: 'fas fa-bolt',
+                        description: 'Fast and efficient summarization using BERT-based extractive methods.',
+                        tooltip: 'BERT (Bidirectional Encoder Representations from Transformers) provides quick, accurate extractive summaries by identifying key sentences. Best for: Quick overviews, bullet-point summaries, maintaining original context.',
+                        accuracy: 85,
+                        processingTime: '2-5 seconds'
+                    },
+                    {
+                        id: 'gpt-summarizer',
+                        name: 'GPT Summarizer',
+                        speed: 'medium',
+                        icon: 'fas fa-brain',
+                        description: 'Advanced abstractive summarization with natural language generation.',
+                        tooltip: 'GPT-based model generates human-like abstractive summaries with contextual understanding. Best for: Comprehensive analysis, narrative summaries, complex document interpretation.',
+                        accuracy: 92,
+                        processingTime: '10-20 seconds'
+                    },
+                    {
+                        id: 't5-summarizer',
+                        name: 'T5 Academic',
+                        speed: 'medium',
+                        icon: 'fas fa-graduation-cap',
+                        description: 'Specialized for academic and institutional documents.',
+                        tooltip: 'Text-To-Text Transfer Transformer optimized for academic content. Best for: NAAC/NBA reports, research papers, institutional assessments, maintaining academic tone.',
+                        accuracy: 89,
+                        processingTime: '8-15 seconds'
+                    },
+                    {
+                        id: 'pegasus-summarizer',
+                        name: 'Pegasus Pro',
+                        speed: 'slow',
+                        icon: 'fas fa-star',
+                        description: 'Premium model for comprehensive document analysis.',
+                        tooltip: 'Pre-training with Extracted Gap-sentences for Abstractive SUmmarization. Highest quality summaries with deep document understanding. Best for: Critical reports, detailed analysis, publication-ready summaries.',
+                        accuracy: 95,
+                        processingTime: '20-40 seconds'
+                    }
+                ];
+                this.init();
+            }
+
+            init() {
+                this.renderModels();
+                this.setupEventListeners();
+                this.selectDefaultModel();
+                this.initTheme();
+                this.setupWordSlider();
+            }
+
+            initTheme() {
+                const savedTheme = localStorage.getItem('theme') || 'dark';
+                this.setTheme(savedTheme);
+            }
+
+            setTheme(theme) {
+                this.currentTheme = theme;
+                document.body.setAttribute('data-theme', theme);
+                
+                document.querySelectorAll('.theme-option').forEach(option => {
+                    option.classList.remove('active');
+                });
+                document.querySelector(`[data-theme="${theme}"]`).classList.add('active');
+                
+                localStorage.setItem('theme', theme);
+            }
+
+            setupWordSlider() {
+                const slider = document.getElementById('wordSlider');
+                const display = document.getElementById('wordCountDisplay');
+                const track = document.getElementById('sliderTrack');
+
+                const updateSlider = () => {
+                    const value = slider.value;
+                    const min = slider.min;
+                    const max = slider.max;
+                    const percentage = ((value - min) / (max - min)) * 100;
+                    
+                    display.textContent = `${value} words`;
+                    track.style.width = `${percentage}%`;
+                    this.wordLimit = parseInt(value);
+                };
+
+                slider.addEventListener('input', updateSlider);
+                updateSlider();
+            }
+
+            calculateWordLimit() {
+                if (this.estimatedDocWords > 0) {
+                    const minWords = Math.max(200, Math.floor(this.estimatedDocWords * 0.05));
+                    const maxWords = Math.min(1000, Math.floor(this.estimatedDocWords * 0.3));
+                    const recommendedWords = Math.floor((minWords + maxWords) / 2);
+                    
+                    const slider = document.getElementById('wordSlider');
+                    slider.min = minWords;
+                    slider.max = maxWords;
+                    slider.value = recommendedWords;
+                    
+                    const labels = document.querySelector('.slider-labels');
+                    labels.innerHTML = `
+                        <span>${minWords} words</span>
+                        <span>Recommended: ${recommendedWords}</span>
+                        <span>${maxWords} words</span>
+                    `;
+                    
+                    this.wordLimit = recommendedWords;
+                    document.getElementById('wordCountDisplay').textContent = `${recommendedWords} words`;
+                    
+                    // Update slider track
+                    const percentage = ((recommendedWords - minWords) / (maxWords - minWords)) * 100;
+                    document.getElementById('sliderTrack').style.width = `${percentage}%`;
+                }
+            }
+
+            renderModels() {
+                const modelGrid = document.getElementById('modelGrid');
+                modelGrid.innerHTML = this.models.map(model => `
+                    <div class="model-card" data-model="${model.id}">
+                        <div class="model-name">
+                            <i class="${model.icon}"></i>
+                            ${model.name}
+                            <span class="model-speed ${model.speed}">${model.speed}</span>
+                        </div>
+                        <div class="model-description">${model.description}</div>
+                        <div class="tooltip">
+                            <strong>${model.name}</strong><br>
+                            ${model.tooltip}<br><br>
+                            <strong>Accuracy:</strong> ${model.accuracy}%<br>
+                            <strong>Processing Time:</strong> ${model.processingTime}
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            selectDefaultModel() {
+                const firstModel = document.querySelector('.model-card');
+                if (firstModel) {
+                    firstModel.classList.add('selected');
+                    this.selectedModel = firstModel.dataset.model;
+                }
+            }
+
+            setupEventListeners() {
+                const uploadZone = document.getElementById('uploadZone');
+                const fileInput = document.getElementById('fileInput');
+                const summarizeBtn = document.getElementById('summarizeBtn');
+                const clearBtn = document.getElementById('clearBtn');
+
+                // Theme toggle
+                document.querySelectorAll('.theme-option').forEach(option => {
+                    option.addEventListener('click', () => {
+                        this.setTheme(option.dataset.theme);
+                    });
+                });
+
+                uploadZone.addEventListener('click', () => fileInput.click());
+                uploadZone.addEventListener('dragover', this.handleDragOver.bind(this));
+                uploadZone.addEventListener('dragleave', this.handleDragLeave.bind(this));
+                uploadZone.addEventListener('drop', this.handleDrop.bind(this));
+                
+                fileInput.addEventListener('change', this.handleFileSelect.bind(this));
+                summarizeBtn.addEventListener('click', this.summarizeDocument.bind(this));
+                clearBtn.addEventListener('click', this.clearAll.bind(this));
+
+                document.getElementById('modelGrid').addEventListener('click', this.handleModelSelect.bind(this));
+            }
+
+            handleDragOver(e) {
+                e.preventDefault();
+                document.getElementById('uploadZone').classList.add('dragover');
+            }
+
+            handleDragLeave(e) {
+                e.preventDefault();
+                document.getElementById('uploadZone').classList.remove('dragover');
+            }
+
+            handleDrop(e) {
+                e.preventDefault();
+                document.getElementById('uploadZone').classList.remove('dragover');
+                const files = Array.from(e.dataTransfer.files);
+                this.processFiles(files);
+            }
+
+            handleFileSelect(e) {
+                const files = Array.from(e.target.files);
+                this.processFiles(files);
+            }
+
+            estimateWordCount(file) {
+                // Estimate words based on file size and type
+                let wordsPerByte;
+                
+                switch(file.type) {
+                    case 'application/pdf':
+                        wordsPerByte = 0.15; // PDFs have more formatting overhead
+                        break;
+                    case 'application/msword':
+                    case 'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
+                        wordsPerByte = 0.12; // Word docs have formatting
+                        break;
+                    case 'text/plain':
+                        wordsPerByte = 0.2; // Plain text is more dense
+                        break;
+                    default:
+                        wordsPerByte = 0.15;
+                }
+                
+                return Math.floor(file.size * wordsPerByte);
+            }
+
+            processFiles(files) {
+                this.hideError();
+                
+                const validFiles = files.filter(file => {
+                    const validTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain'];
+                    const maxSize = 10 * 1024 * 1024;
+                    
+                    if (!validTypes.includes(file.type)) {
+                        this.showError('Invalid file type. Please upload PDF, DOC, DOCX, or TXT files.');
+                        return false;
+                    }
+                    
+                    if (file.size > maxSize) {
+                        this.showError('File too large. Maximum size is 10MB.');
+                        return false;
+                    }
+                    
+                    return true;
+                });
+
+                if (validFiles.length > 0) {
+                    this.uploadedFiles = validFiles;
+                    this.estimatedDocWords = this.estimateWordCount(validFiles[0]);
+                    this.displayFileInfo(validFiles[0]);
+                    this.calculateWordLimit();
+                    document.getElementById('wordLimitSection').style.display = 'block';
+                    document.getElementById('summarizeBtn').disabled = false;
+                }
+            }
+
+            displayFileInfo(file) {
+                const fileInfo = document.getElementById('fileInfo');
+                const fileName = document.getElementById('fileName');
+                const fileSize = document.getElementById('fileSize');
+                const fileType = document.getElementById('fileType');
+                const filePages = document.getElementById('filePages');
+                const estimatedWords = document.getElementById('estimatedWords');
+
+                fileName.textContent = file.name;
+                fileSize.textContent = this.formatFileSize(file.size);
+                fileType.textContent = file.type.split('/')[1].toUpperCase();
+                filePages.textContent = `Est. ${Math.ceil(file.size / 2500)} pages`;
+                estimatedWords.textContent = `~${this.estimatedDocWords.toLocaleString()} words`;
+
+                fileInfo.style.display = 'block';
+            }
+
+            formatFileSize(bytes) {
+                const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+                if (bytes === 0) return '0 Bytes';
+                const i = parseInt(Math.floor(Math.log(bytes) / Math.log(1024)));
+                return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
+            }
+
+            handleModelSelect(e) {
+                const modelCard = e.target.closest('.model-card');
+                if (!modelCard) return;
+
+                document.querySelectorAll('.model-card').forEach(card => {
+                    card.classList.remove('selected');
+                });
+
+                modelCard.classList.add('selected');
+                this.selectedModel = modelCard.dataset.model;
+            }
+
+            async summarizeDocument() {
+                if (!this.uploadedFiles.length || !this.selectedModel) return;
+
+                this.showProgress();
+                const model = this.models.find(m => m.id === this.selectedModel);
+
+                try {
+                    this.updateProgress(10, 'Reading document...');
+                    await this.delay(800);
+
+                    this.updateProgress(30, 'Preprocessing text...');
+                    await this.delay(1200);
+
+                    this.updateProgress(50, `Applying ${model.name}...`);
+                    await this.delay(2000);
+
+                    this.updateProgress(80, 'Generating summary...');
+                    await this.delay(1500);
+
+                    this.updateProgress(95, 'Finalizing results...');
+                    await this.delay(800);
+
+                    const summary = this.generateMockSummary(this.uploadedFiles[0], model);
+                    this.displaySummary(summary, model);
+
+                    this.updateProgress(100, 'Complete!');
+                    setTimeout(() => this.hideProgress(), 1000);
+
+                } catch (error) {
+                    this.showError('Failed to process document. Please try again.');
+                    this.hideProgress();
+                }
+            }
+
+            generateMockSummary(file, model) {
+                const summaries = {
+                    'bert-summarizer': {
+                        title: 'BERT Extractive Summary',
+                        content: this.generateContentByWordLimit(`This NAAC/NBA institutional assessment report demonstrates comprehensive compliance with accreditation standards. The institution exhibits strong governance structures, quality assurance mechanisms, and student-centric approaches. Key strengths include robust infrastructure development, diverse academic programs, and effective learning outcomes assessment. The report highlights significant improvements in research activities, community engagement, and institutional development initiatives over the assessment period. Faculty development programs show consistent progress with enhanced qualifications and research output. Student support services demonstrate excellence in counseling, career guidance, and placement assistance. The institution maintains strong industry partnerships and alumni networks. Quality assurance mechanisms include regular curriculum updates, feedback systems, and continuous improvement processes.`),
+                        keyPoints: [
+                            'Strong governance and quality assurance systems',
+                            'Comprehensive academic program portfolio',
+                            'Effective learning outcome assessment mechanisms',
+                            'Significant research and development activities',
+                            'Excellent student support services',
+                            'Strong industry partnerships and alumni networks'
+                        ]
+                    },
+                    'gpt-summarizer': {
+                        title: 'GPT Comprehensive Analysis',
+                        content: this.generateContentByWordLimit(`The institutional evaluation reveals a well-structured organization committed to academic excellence and continuous improvement. The institution demonstrates exceptional performance in curriculum design, faculty development, and student support services. Notable achievements include innovative teaching methodologies, industry partnerships, and sustainable campus development. The report emphasizes the institution's dedication to quality education, research innovation, and societal contribution, positioning it as a leader in higher education standards. Strategic planning initiatives focus on technological integration, infrastructure enhancement, and human resource development. The institution shows remarkable progress in achieving learning outcomes, maintaining high academic standards, and fostering research culture.`),
+                        keyPoints: [
+                            'Exceptional curriculum design and delivery',
+                            'Strong industry-academia partnerships',
+                            'Innovative teaching and learning practices',
+                            'Commitment to sustainable development',
+                            'Strategic technological integration',
+                            'Research culture and innovation focus'
+                        ]
+                    },
+                    't5-summarizer': {
+                        title: 'Academic Assessment Summary',
+                        content: this.generateContentByWordLimit(`The NAAC assessment report presents a comprehensive evaluation of institutional effectiveness across multiple parameters. The institution demonstrates strong adherence to academic standards, effective governance mechanisms, and robust quality assurance processes. Significant strengths identified include faculty qualifications, research output, infrastructure adequacy, and student progression rates. The institution shows consistent performance in meeting accreditation criteria and maintaining educational quality standards. Academic programs align with industry requirements and demonstrate excellent outcome achievement. Research activities show substantial growth with increased publications, patents, and funded projects.`),
+                        keyPoints: [
+                            'Strong academic standards and governance',
+                            'Qualified faculty and research excellence',
+                            'Adequate infrastructure and resources',
+                            'Effective student support mechanisms',
+                            'Industry-aligned academic programs',
+                            'Substantial research growth and output'
+                        ]
+                    },
+                    'pegasus-summarizer': {
+                        title: 'Premium Institutional Analysis',
+                        content: this.generateContentByWordLimit(`This comprehensive institutional assessment reflects a mature organization with established systems for academic excellence, administrative efficiency, and continuous improvement. The evaluation highlights exemplary performance in curriculum innovation, research productivity, and stakeholder engagement. The institution demonstrates leadership in educational technology integration, sustainable practices, and community development. Strategic planning, resource optimization, and outcome-based education implementation are identified as key institutional strengths contributing to its distinguished academic reputation. The institution excels in creating a conducive learning environment, fostering innovation, and maintaining high ethical standards.`),
+                        keyPoints: [
+                            'Exemplary curriculum innovation and delivery',
+                            'Distinguished research and academic reputation',
+                            'Strategic resource optimization and planning',
+                            'Leadership in educational technology and sustainability',
+                            'Excellent stakeholder engagement',
+                            'High ethical standards and governance'
+                        ]
+                    }
+                };
+
+                return summaries[model.id] || summaries['bert-summarizer'];
+            }
+
+            generateContentByWordLimit(baseContent) {
+                const words = baseContent.split(' ');
+                const targetWords = this.wordLimit;
+                
+                if (words.length <= targetWords) {
+                    // If content is shorter than limit, expand it
+                    const additionalContent = ` The institutional framework demonstrates excellence in academic governance, research innovation, and student development. Quality enhancement initiatives include regular curriculum reviews, faculty development programs, and infrastructure upgrades. The institution maintains strong stakeholder relationships through effective communication channels and feedback mechanisms. Continuous monitoring and evaluation systems ensure adherence to quality standards and accreditation requirements. Strategic initiatives focus on digital transformation, sustainability practices, and inclusive growth. The institution's commitment to excellence is reflected in its comprehensive approach to education, research, and community service.`;
+                    const expandedContent = baseContent + additionalContent;
+                    const expandedWords = expandedContent.split(' ');
+                    return expandedWords.slice(0, targetWords).join(' ') + '.';
+                } else {
+                    // If content is longer than limit, truncate it
+                    return words.slice(0, targetWords).join(' ') + '.';
+                }
+            }
+
+            displaySummary(summary, model) {
+                const summaryContainer = document.getElementById('summaryContainer');
+                const actualWordCount = summary.content.split(' ').length;
+                const compressionRatio = Math.round((1 - actualWordCount / this.estimatedDocWords) * 100);
+
+                summaryContainer.innerHTML = `
+                    <div class="summary-header">
+                        <div class="summary-title">
+                            <i class="${model.icon}"></i>
+                            ${summary.title}
+                        </div>
+                        <div class="summary-stats">
+                            <span><i class="fas fa-compress"></i> ${compressionRatio}% compression</span>
+                            <span><i class="fas fa-clock"></i> ${actualWordCount} words</span>
+                            <span><i class="fas fa-star"></i> ${model.accuracy}% accuracy</span>
+                            <span><i class="fas fa-file-text"></i> Target: ${this.wordLimit} words</span>
+                        </div>
+                    </div>
+                    <div class="summary-content">
+                        ${summary.content}
+                    </div>
+                    <div style="margin-top: 2rem;">
+                        <h4 style="margin-bottom: 1rem; color: var(--accent-color);">
+                            <i class="fas fa-list"></i> Key Insights
+                        </h4>
+                        <ul style="padding-left: 1.5rem; line-height: 1.8;">
+                            ${summary.keyPoints.map(point => `<li>${point}</li>`).join('')}
+                        </ul>
+                    </div>
+                    <div style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--border-color); color: var(--secondary-text); font-size: 0.9rem;">
+                        <i class="fas fa-info-circle"></i> 
+                        Summary generated using ${model.name} with ${this.wordLimit} word limit from ~${this.estimatedDocWords.toLocaleString()} estimated document words
+                    </div>
+                `;
+
+                document.getElementById('resultSection').style.display = 'block';
+                document.getElementById('resultSection').scrollIntoView({ behavior: 'smooth' });
+            }
+
+            showProgress() {
+                document.getElementById('progressContainer').style.display = 'block';
+                document.getElementById('summarizeBtn').disabled = true;
+                document.getElementById('summarizeBtn').innerHTML = '<div class="loading-spinner"></div> Processing...';
+            }
+
+            hideProgress() {
+                document.getElementById('progressContainer').style.display = 'none';
+                document.getElementById('summarizeBtn').disabled = false;
+                document.getElementById('summarizeBtn').innerHTML = '<i class="fas fa-magic"></i> Generate Summary';
+            }
+
+            updateProgress(percent, text) {
+                document.getElementById('progressFill').style.width = `${percent}%`;
+                document.getElementById('progressText').textContent = text;
+            }
+
+            showError(message) {
+                const errorElement = document.getElementById('errorMessage');
+                errorElement.textContent = message;
+                errorElement.style.display = 'block';
+            }
+
+            hideError() {
+                document.getElementById('errorMessage').style.display = 'none';
+            }
+
+            clearAll() {
+                this.uploadedFiles = [];
+                this.estimatedDocWords = 0;
+                document.getElementById('fileInput').value = '';
+                document.getElementById('fileInfo').style.display = 'none';
+                document.getElementById('wordLimitSection').style.display = 'none';
+                document.getElementById('resultSection').style.display = 'none';
+                document.getElementById('summarizeBtn').disabled = true;
+                this.hideError();
+                this.hideProgress();
+                
+                // Reset word limit slider
+                const slider = document.getElementById('wordSlider');
+                slider.min = 200;
+                slider.max = 1000;
+                slider.value = 500;
+                this.wordLimit = 500;
+                document.getElementById('wordCountDisplay').textContent = '500 words';
+                document.getElementById('sliderTrack').style.width = '50%';
+                
+                const labels = document.querySelector('.slider-labels');
+                labels.innerHTML = `
+                    <span>200 words</span>
+                    <span>Recommended</span>
+                    <span>1000 words</span>
+                `;
+            }
+
+            delay(ms) {
+                return new Promise(resolve => setTimeout(resolve, ms));
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            new ReportSummarizer();
+        });
+    </script>
+</body>
+</html>
